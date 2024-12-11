@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bate-Papo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #402F1D;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 90%;
+      max-width: 600px;
+      height: 80vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #FFDBAF;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .message.sent {
+      background-color: #e0f7fa;
+      align-self: flex-end;
+    }
+
+    .message.received {
+      background-color: #f1f1f1;
+      align-self: flex-start;
+    }
+
+    .chat-footer {
+      display: flex;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-top: 1px solid #ddd;
+    }
+
+    .chat-footer select,
+    .chat-footer input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      margin-right: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .chat-footer button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .chat-footer button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Bate-Papo</div>
+    <div class="messages" id="messages">
+      <!-- Mensagens aparecerão aqui -->
+    </div>
+    <div class="chat-footer">
+      <select id="userSelect">
+        <!-- Opções preenchidas dinamicamente pelo backend -->
+      </select>
+      <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    // Simula a população dos usuários no select (substitua por dados dinâmicos do backend)
+    const userSelect = document.getElementById('userSelect');
+
+    fetch('/getUsuarios') // Endpoint para obter usuários cadastrados
+      .then(response => response.json())
+      .then(users => {
+        users.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.nickname;
+          option.textContent = user.nickname;
+          userSelect.appendChild(option);
+        });
+      })
+      .catch(err => console.error('Erro ao carregar usuários:', err));
+
+    const messages = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      const user = userSelect.value;
+
+      if (text === '' || user === '') {
+        alert('Usuário e mensagem são obrigatórios!');
+        return;
+      }
+
+      // Envia a mensagem para o backend
+      fetch('/enviarMensagem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mensagem: text, nickname: user })
+      })
+      .then(response => {
+        if (response.ok) {
+          // Atualiza a lista de mensagens
+          loadMessages();
+        } else {
+          alert('Erro ao enviar mensagem.');
+        }
+      })
+      .catch(err => console.error('Erro:', err));
+
+      // Limpa o campo de entrada
+      messageInput.value = '';
+    }
+
+    // Carrega as mensagens existentes
+    function loadMessages() {
+      fetch('/getMensagens') // Endpoint para obter mensagens
+        .then(response => response.json())
+        .then(data => {
+          messages.innerHTML = '';
+          data.forEach(msg => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = msg.nickname === userSelect.value ? 'message sent' : 'message received';
+            messageDiv.textContent = `${msg.nickname}: ${msg.mensagem}`;
+            messages.appendChild(messageDiv);
+          });
+          messages.scrollTop = messages.scrollHeight; // Mantém o scroll no final
+        })
+        .catch(err => console.error('Erro ao carregar mensagens:', err));
+    }
+
+    // Inicializa o chat
+    loadMessages();
+  </script>
+</body>
+</html>
